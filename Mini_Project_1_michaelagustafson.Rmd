@@ -19,16 +19,21 @@ Develop a spatial database that contains potentially relevant explanatory variab
 
 Demonstrate an understanding of the various workflow elements involved in designing and constructing a spatial database for subsequent visualization and analysis.
 
-```{r cars}
-summary(cars)
+```{r library}
+library(here)
+library(tidyr)
+library(dplyr)
+library(terra)
+library(sf)
 ```
 
-## Including Plots
+# Upload zombie data
 
-You can also embed plots, for example:
+```{r zombieload}
+here()
+zom <- read.csv(here("zombies.csv"))
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+head(zom); dim(zom)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

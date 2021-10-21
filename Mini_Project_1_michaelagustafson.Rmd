@@ -31,8 +31,8 @@ library(sf)
 
 nz.census <- read.csv(here("Census_Usually_resident_population_count_and_change_by_region_2006_2013_and_2018.csv"))
 
-#nz.regions <- read_sf(""))
-
+nz.regions <- read_sf(here("nz-regional-councils-2008-yearly-pattern.shp"))
+plot(nz.regions)
 ```
 
 

@@ -26,19 +26,29 @@ library(dplyr)
 library(terra)
 library(sf)
 ```
+# New Zealand Data
+```{r nzdata}
+
+nz.census <- read.csv(here("Census_Usually_resident_population_count_and_change_by_region_2006_2013_and_2018.csv"))
+
+#nz.regions <- read_sf(""))
+
+```
+
+
 
 # Upload zombie data
 
 ```{r zombieload}
-here()
-zom <- read.csv(here("zombies.csv"))
+#here()
+#zom <- read.csv(here("zombies.csv"))
 
-head(zom); dim(zom)
+#head(zom); dim(zom)
 
-zombie.csv <- read.csv(here("New_Zealand_Zombie_Attack_Data.csv"))
+#zombie.csv <- read.csv(here("New_Zealand_Zombie_Attack_Data.csv"))
 
-zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
-plot(zombie.shp)
+#zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
+#plot(zombie.shp)
 
 ```
 

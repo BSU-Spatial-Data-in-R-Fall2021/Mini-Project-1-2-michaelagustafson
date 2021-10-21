@@ -34,6 +34,12 @@ here()
 zom <- read.csv(here("zombies.csv"))
 
 head(zom); dim(zom)
+
+zombie.csv <- read.csv(here("New_Zealand_Zombie_Attack_Data.csv"))
+
+zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
+plot(zombie.shp)
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -25,16 +25,38 @@ library(tidyr)
 library(dplyr)
 library(terra)
 library(sf)
+library(tidyverse)
+library(devtools)
+
 ```
 # New Zealand Data
-```{r nzdata}
 
-nz.census <- read.csv(here("Census_Usually_resident_population_count_and_change_by_region_2006_2013_and_2018.csv"))
+https://rdrr.io/cran/spData/man/nz.html
 
-nz.regions <- read_sf(here("nz-regional-councils-2008-yearly-pattern.shp"))
-plot(nz.regions)
+```{r gitnzcencsu}
+# Find "Regional Council 2018 Clipped (generalised)"
+# select the GeoPackage option in the "Vectors/tables" dropdown
+# at https://datafinder.stats.govt.nz/data/ (requires registration)
+# Save the result as:
+unzip("statsnzregional-council-2018-clipped-generalised-GPKG.zip")
+nz_full = st_read("regional-council-2018-clipped-generalised.gpkg")
+print(object.size(nz_full), units = "Kb") # 14407.2 Kb
+
+nz <- st_simplify(nz_full, dTolerance = 1000)
+
+# nz = rmapshaper::ms_simplify(nz_full, keep = 0.001, sys = TRUE)
+print(object.size(nz), units = "Kb") # 39.9 Kb
+names(nz)
+nz$REGC2018_V1_00_NAME
+nz = filter(nz, REGC2018_V1_00_NAME != "Area Outside Region") %>%
+        select(Name = REGC2018_V1_00_NAME, `Land_area` = LAND_AREA_SQ_KM)
+
+plot(nz)
+
+
+# now join nz sf with census info:
+
 ```
-
 
 
 # Upload zombie data

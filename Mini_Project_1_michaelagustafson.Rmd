@@ -80,15 +80,15 @@ nz.census <- filter(nz.census, X...Census.year == "2018") %>%
 # Upload zombie data
 
 ```{r zombieload}
-#here()
-#zom <- read.csv(here("zombies.csv"))
 
-#head(zom); dim(zom)
+zom <- read.csv("zombies.csv")
 
-#zombie.csv <- read.csv(here("New_Zealand_Zombie_Attack_Data.csv"))
+head(zom); dim(zom)
 
-#zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
-#plot(zombie.shp)
+zombie.csv <- read.csv(here("New_Zealand_Zombie_Attack_Data.csv"))
+
+zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
+plot(zombie.shp)
 
 ```
 

@@ -27,6 +27,7 @@ library(terra)
 library(sf)
 library(tidyverse)
 library(devtools)
+library(nzcensus)
 
 ```
 # New Zealand Data
@@ -38,24 +39,39 @@ https://rdrr.io/cran/spData/man/nz.html
 # select the GeoPackage option in the "Vectors/tables" dropdown
 # at https://datafinder.stats.govt.nz/data/ (requires registration)
 # Save the result as:
-unzip("statsnzregional-council-2018-clipped-generalised-GPKG.zip")
-nz_full = st_read("regional-council-2018-clipped-generalised.gpkg")
-print(object.size(nz_full), units = "Kb") # 14407.2 Kb
 
-nz <- st_simplify(nz_full, dTolerance = 1000)
+unzip("statsnzregional-council-2018-clipped-generalised-SHP.zip")
+nz.full.shp <- st_read("regional-council-2018-clipped-generalised.shp")
 
-# nz = rmapshaper::ms_simplify(nz_full, keep = 0.001, sys = TRUE)
-print(object.size(nz), units = "Kb") # 39.9 Kb
-names(nz)
-nz$REGC2018_V1_00_NAME
-nz = filter(nz, REGC2018_V1_00_NAME != "Area Outside Region") %>%
-        select(Name = REGC2018_V1_00_NAME, `Land_area` = LAND_AREA_SQ_KM)
+plot(st_geometry(nz.full.shp))
+# print(object.size(nz_full), units = "Kb") # 14407.2 Kb
 
-plot(nz)
+# nz <- st_simplify(nz_full, dTolerance = 1000)
 
 
-# now join nz sf with census info:
+names(nz.full.shp)
+nz.full.shp$REGC2018_1
+nz = filter(nz.full.shp, REGC2018_1 != "Area Outside Region") %>%
+        select(Name = REGC2018_1)
 
+st_is_valid(nz)
+st_crs(nz)
+
+nz.reg.coun <- read.csv("regional_council_2018_csv.csv")
+nz.reg.coun <- filter(nz.reg.coun, REGC2018_V1_00_NAME != "Area Outside Region") %>%
+  select(Name = REGC2018_V1_00_NAME, Area_SQKM = LAND_AREA_SQ_KM)
+
+# join nz.reg.coun with spatial data nz
+
+nz.shp <- inner_join(nz, nz.reg.coun, by = "Name")
+
+
+```
+
+# Upload census data and join with shapefile
+```{r nzcensus}
+
+??nzcensus
 ```
 
 

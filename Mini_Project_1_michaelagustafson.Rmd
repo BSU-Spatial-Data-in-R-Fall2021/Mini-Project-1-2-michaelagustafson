@@ -26,8 +26,6 @@ library(dplyr)
 library(terra)
 library(sf)
 library(tidyverse)
-library(devtools)
-library(nzcensus)
 
 ```
 # New Zealand Data
@@ -52,26 +50,30 @@ plot(st_geometry(nz.full.shp))
 names(nz.full.shp)
 nz.full.shp$REGC2018_1
 nz = filter(nz.full.shp, REGC2018_1 != "Area Outside Region") %>%
-        select(Name = REGC2018_1)
+        select(Region = REGC2018_1)
 
 st_is_valid(nz)
 st_crs(nz)
 
 nz.reg.coun <- read.csv("regional_council_2018_csv.csv")
 nz.reg.coun <- filter(nz.reg.coun, REGC2018_V1_00_NAME != "Area Outside Region") %>%
-  select(Name = REGC2018_V1_00_NAME, Area_SQKM = LAND_AREA_SQ_KM)
+  select(Region = REGC2018_V1_00_NAME, Area_SQKM = LAND_AREA_SQ_KM)
 
 # join nz.reg.coun with spatial data nz
 
-nz.shp <- inner_join(nz, nz.reg.coun, by = "Name")
+nz.shp <- inner_join(nz, nz.reg.coun, by = "Region")
 
 
 ```
 
 # Upload census data and join with shapefile
 ```{r nzcensus}
+nz.census <- read.csv("Census_Usually_resident_population_count_and_change_by_region_2006_2013_and_2018.csv")
 
-??nzcensus
+names(nz.census)
+nz.census <- filter(nz.census, X...Census.year == "2018") %>%
+  select(Year = X...Census.year, Region, Population = Value)
+
 ```
 
 

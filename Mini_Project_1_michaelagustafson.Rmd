@@ -74,6 +74,43 @@ names(nz.census)
 nz.census <- filter(nz.census, X...Census.year == "2018") %>%
   select(Year = X...Census.year, Region, Population = Value)
 
+
+census2 <- read.csv("2018-Census-urban-accessibility-dataset-csv.csv")
+
+census2 <- census2 %>% 
+  dplyr::select(RC_IUA2018_V1_00_NAME, starts_with("C18"))
+
+
+
+```
+
+# Urban vs Rural shapefile
+
+```{r urbrur}
+unzip("statsnzurban-rural-2021-generalised-SHP.zip")
+urbrur <- read_sf("urban-rural-2021-generalised.shp")
+plot(st_geometry(urbrur))
+
+unique(urbrur$IUR2021__1)
+
+head(urbrur)
+
+urban <- urbrur %>%
+  select(Name = UR2021_V_2, Urban = IUR2021__1, AreaSQKM = AREA_SQ_KM, geometry)
+
+head(urban)
+
+```
+
+# Elevation
+```{r}
+library(ggplot2)
+library(raster)
+library(elevatr)
+library(viridis)
+
+nz.elev <- get_elev_raster(locations = nz.shp, z = 9)
+
 ```
 
 
@@ -84,8 +121,6 @@ nz.census <- filter(nz.census, X...Census.year == "2018") %>%
 zom <- read.csv("zombies.csv")
 
 head(zom); dim(zom)
-
-zombie.csv <- read.csv(here("New_Zealand_Zombie_Attack_Data.csv"))
 
 zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
 plot(zombie.shp)

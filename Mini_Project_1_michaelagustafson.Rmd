@@ -156,7 +156,19 @@ zombie.shp.proj <- st_transform(zombie.shp, crs = st_crs(region.urban.join))
 st_crs(zombie.shp.proj) == st_crs(region.urban.join)
 
 
-region.urban.zombie.join <- st_join(region.urban.join, zombie.shp.proj, join = st_within)
+region.zombie.join <- st_join(zombie.shp.proj, nz.shp, join = st_within)
 ```
 
+
+# Summarize
+
+## Summarize the number of attacks per region
+
+```{r}
+attacks.per.region <- region.zombie.join %>% 
+  group_by(Region) %>% 
+  summarize(., Total_Attacks = sum(Attacks))
+
+?summarize
+```
 

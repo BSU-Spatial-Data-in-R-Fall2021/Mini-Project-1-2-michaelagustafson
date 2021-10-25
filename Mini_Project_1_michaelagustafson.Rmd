@@ -96,18 +96,12 @@ census2 <- census2 %>%
 # Urban vs Rural shapefile
 
 ```{r urbrur}
-unzip("statsnzurban-rural-2021-generalised-SHP.zip")
-urbrur <- read_sf("urban-rural-2021-generalised.shp")
+unzip("statsnzurban-rural-2019-clipped-generalised-SHP.zip")
+urbrur <- read_sf("urban-rural-2019-clipped-generalised.shp")
 plot(st_geometry(urbrur))
 
-unique(urbrur$IUR2021__1)
-
-head(urbrur)
-
 urban <- urbrur %>%
-  select(Name = UR2021_V_2, Urban = IUR2021__1, AreaSQKM = AREA_SQ_KM, geometry)
-
-head(urban)
+  select(Name = UR2019_V_1, Urban = IUR2019__1, AreaSQKM = AREA_SQ_KM, geometry)
 
 
 ```
@@ -135,12 +129,10 @@ plot(zombie.shp)
 
 st_crs(urban) == st_crs(nz.shp)
 
-region.urban.join <- st_join(urban, nz.shp, join=st_intersects)
-unique(region.urban.join$Name)
+region.urban.join <- st_join(urban, nz.shp, join=st_within)
 
-duplicated(region.urban.join$Name)
+# yayayya ended up with same number of observations as in the 'urban' dataset
 
-# okay so what I can't understand here is that there are duplicated rows but I can't actually find any of the names in the dataframe duplicated... This is likely because with using intersect, just because the boundaries don't match up exactly, some shapefiles might cross with another boundary..
 ```
 
 ## Join Zombie Attack locations with joined frame above:
@@ -169,6 +161,37 @@ attacks.per.region <- region.zombie.join %>%
   group_by(Region) %>% 
   summarize(., Total_Attacks = sum(Attacks))
 
-?summarize
+print(attacks.per.region)
+
+
+# get population density for each region? And then attacks/pop/sqkm?
 ```
+
+```{r}
+# collapse 'urban' to just urban and rural then find the number of attacks that occur in urban vs rural areas
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

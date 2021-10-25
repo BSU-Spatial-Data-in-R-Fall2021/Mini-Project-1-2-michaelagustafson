@@ -68,19 +68,13 @@ Data source: https://www.stats.govt.nz/topics/census
 I will use census data to determine the population density/sqkm in areas of the regions (urban vs rural) and overall population density/sqkm of a region. This information will be best used to determine good regions for individuals to go to be in less populated areas and have a better chance of avoiding other people and potential zombie infection.
 
 ```{r nzcensus}
+# read in census data
 nz.census <- read.csv("Census_Usually_resident_population_count_and_change_by_region_2006_2013_and_2018.csv")
 
+# filter to get most recent census population (2018)
 names(nz.census)
 nz.census <- filter(nz.census, X...Census.year == "2018") %>%
   select(Year = X...Census.year, Region, Population = Value)
-
-
-census2 <- read.csv("2018-Census-urban-accessibility-dataset-csv.csv")
-
-census2 <- census2 %>% 
-  dplyr::select(RC_IUA2018_V1_00_NAME, starts_with("C18"))
-
-
 
 ```
 
@@ -120,11 +114,11 @@ plot(zombie.shp)
 
 ```{r}
 
-st_crs(urban) == st_crs(nz.shp)
+st_crs(urban) == st_crs(nz.reg.shp)
 
-region.urban.join <- st_join(urban, nz.shp, join=st_within)
+region.urban.join <- st_join(urban, nz.reg.shp, join=st_within)
 
-# yayayya ended up with same number of observations as in the 'urban' dataset
+# yayayya ended up with same number of observations as in the 'urban' dataset. But we have some urban districts that didn't match up with a region. Not as many as with the datasets used prior, but still unsure how to fix this.
 
 ```
 
@@ -138,10 +132,10 @@ st_crs(region.urban.join)
 
 ?st_transform
 zombie.shp.proj <- st_transform(zombie.shp, crs = st_crs(region.urban.join))
+
 st_crs(zombie.shp.proj) == st_crs(region.urban.join)
 
-reg.urb.zom.join <- st_join(zombie.shp.proj, region.urban.join, join = st_within)
-region.zombie.join <- st_join(zombie.shp.proj, nz.shp, join = st_within)
+region.zombie.join <- st_join(nz.reg.shp, zombie.shp.proj, join = st_contains)
 ```
 
 

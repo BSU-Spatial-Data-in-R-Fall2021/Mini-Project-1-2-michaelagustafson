@@ -28,9 +28,13 @@ library(sf)
 library(tidyverse)
 
 ```
-# New Zealand Data
 
-https://rdrr.io/cran/spData/man/nz.html
+# A. Regions
+
+## 1. New Zealand Region Data
+ Data source: https://catalogue.data.govt.nz/dataset
+
+The regions of New Zealand are my 'regions' I will use to organize higher order variables.
 
 ```{r gitnzcencsu}
 # Find "Regional Council 2018 Clipped (generalised)"
@@ -65,8 +69,13 @@ nz.shp <- inner_join(nz, nz.reg.coun, by = "Region")
 
 
 ```
+# B. Tabular Data
+## 1. Census Data
 
-# Upload census data and join with shapefile
+Data source: https://www.stats.govt.nz/topics/census
+
+I will use census data to determine the population density/sqkm in areas of the regions (urban vs rural) and overall population density/sqkm of a region. This information will be best used to determine good regions for individuals to go to be in less populated areas and have a better chance of avoiding other people and potential zombie infection.
+
 ```{r nzcensus}
 nz.census <- read.csv("Census_Usually_resident_population_count_and_change_by_region_2006_2013_and_2018.csv")
 
@@ -100,16 +109,6 @@ urban <- urbrur %>%
 
 head(urban)
 
-```
-
-# Elevation
-```{r}
-library(ggplot2)
-library(raster)
-library(elevatr)
-library(viridis)
-
-nz.elev <- get_elev_raster(locations = nz.shp, z = 9)
 
 ```
 
@@ -128,8 +127,36 @@ plot(zombie.shp)
 ```
 
 
+# Spatial Join
+
+# Join urban/rural information with regions using st_is_within
+
+```{r}
+
+st_crs(urban) == st_crs(nz.shp)
+
+region.urban.join <- st_join(urban, nz.shp, join=st_intersects)
+unique(region.urban.join$Name)
+
+duplicated(region.urban.join$Name)
+
+# okay so what I can't understand here is that there are duplicated rows but I can't actually find any of the names in the dataframe duplicated... This is likely because with using intersect, just because the boundaries don't match up exactly, some shapefiles might cross with another boundary..
+```
+
+## Join Zombie Attack locations with joined frame above:
+
+```{r}
+st_crs(zombie.shp) == st_crs(region.urban.join)
+
+st_crs(zombie.shp)
+st_crs(region.urban.join)
+
+?st_transform
+zombie.shp.proj <- st_transform(zombie.shp, crs = st_crs(region.urban.join))
+st_crs(zombie.shp.proj) == st_crs(region.urban.join)
 
 
-
+region.urban.zombie.join <- st_join(region.urban.join, zombie.shp.proj, join = st_within)
+```
 
 

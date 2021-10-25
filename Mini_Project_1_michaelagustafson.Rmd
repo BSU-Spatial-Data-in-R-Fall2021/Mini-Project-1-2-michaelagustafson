@@ -19,6 +19,25 @@ Develop a spatial database that contains potentially relevant explanatory variab
 
 Demonstrate an understanding of the various workflow elements involved in designing and constructing a spatial database for subsequent visualization and analysis.
 
+
+My Question:
+Where is the best place to go in New Zealand during the zombie apocalypse to avoid infection and survive?
+Specifically, I will look at 
+1. Where the most zombie attacks are happening
+2. Are they happening in more urban or rural locations?
+3. Highlight rural locations as areas of survival (the less people around, the less chance of encountering an infected person and becoming a zomibe)
+4. Number of pharmacies in each city>>region to inform survivors of the best places to go where they will have regular access to medical supplies
+
+  
+
+I will answer this question using the following data:
+
+- Census information (population, population density)
+- Urban and rural district classifications
+- Land area (sqkm)
+- Locations and number of zombie attacks
+
+
 ```{r library}
 library(here)
 library(tidyr)
@@ -26,10 +45,26 @@ library(dplyr)
 library(terra)
 library(sf)
 library(tidyverse)
+library(ggmap)
+```
+
+# A. Dependent Variable with Point Geometry: Zombie Attacks
+
+Data source: kaggle.com
+
+
+```{r zombieload}
+
+zom <- read.csv("zombies.csv")
+
+head(zom); dim(zom)
+
+zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
+plot(zombie.shp)
 
 ```
 
-# A. Regions
+# B. Regions
 
 ## 1. New Zealand Region Data
  Data source: https://datafinder.stats.govt.nz/layer/98765-regional-council-2019-clipped-generalised/
@@ -60,7 +95,7 @@ st_is_valid(nz.reg.shp)
 st_crs(nz.reg.shp)
 
 ```
-# B. Tabular Data
+# C. Tabular Data
 ## 1. Census Data
 
 Data source: https://www.stats.govt.nz/topics/census
@@ -78,9 +113,12 @@ nz.census <- filter(nz.census, X...Census.year == "2018") %>%
 
 ```
 
-# Urban vs Rural shapefile
 
-https://datafinder.stats.govt.nz/layer/98743-urban-rural-2019-clipped-generalised/
+
+# D. Spatial Data
+## 1. Urban vs Rural shapefile
+
+Data source: https://datafinder.stats.govt.nz/layer/98743-urban-rural-2019-clipped-generalised/
 
 ```{r urbrur}
 unzip("statsnzurban-rural-2019-clipped-generalised-SHP.zip")
@@ -93,22 +131,57 @@ urban <- urbrur %>%
 
 ```
 
+# 2. Pharmacy Location Data
+Data source: https://fyi.org.nz/request/10183-total-number-of-licenced-pharmacies-in-nz-2019
 
-# Upload zombie data
+Does this still count as tabular data even though I turned it into spatial data??
+```{r}
 
-```{r zombieload}
+#?register_google
+#register_google(key = "AIzaSyAqigVAND9UsFfCnlKTIoVxmkhJOjV3Po0", write = TRUE)
 
-zom <- read.csv("zombies.csv")
+#nz.pharm <- read.csv("Pharmacy Database.csv")
 
-head(zom); dim(zom)
+#nz.pharm <- nz.pharm %>%
+ # select(Pharmacy_Nm = PREMISES_NAME, Street = STREET_ADDRESS, Suburb = #STREET_ADDRESS_SUBURB_RD, City = STREET_ADDRESS_TOWN_CITY, zip = STREET_ADDRESS_POST_CODE)
 
-zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
-plot(zombie.shp)
+#head(nz.pharm)
 
+# create address column with full address (minus postal code)
+#nz.pharm$address <- paste(nz.pharm$Street, nz.pharm$Suburb, nz.pharm$City, sep = ",")
+# remove double "," for those that didn't have a suburb listed
+#nz.pharm$address <- gsub(",,", ",", nz.pharm$address)
+
+# initialize dataframe
+#geocoded <- data.frame(stringsAsFactors = FALSE)
+
+#for(i in 1:nrow(nz.pharm)) {
+  # Print("Working...")
+ # result <- geocode(nz.pharm$address[i], output = "latlona", source = "google")
+ # nz.pharm$lon[i] <- as.numeric(result[1])
+  #nz.pharm$lat[i] <- as.numeric(result[2])
+#}
+
+#write.csv(nz.pharm, here("nz.pharm.csv"))
+
+# read in pharmacy csv created above that now has location data:
+
+nz.pharm <- read.csv(here("nz.pharm.csv"))
+
+nz.pharm <- na.omit(nz.pharm)
+nz.pharm.sf <- st_as_sf(nz.pharm, coords = c("lon", "lat"), crs = 4326)
+st_crs(nz.pharm.sf)
+nz.pharm.proj <- st_transform(nz.pharm.sf, crs = st_crs(nz.reg.shp))
+st_crs(nz.reg.shp) == st_crs(nz.pharm.proj)
+
+plot(st_geometry(nz.reg.shp))
+plot(st_geometry(nz.pharm.proj), add = TRUE)
+#looks alright
 ```
 
+# E. Creating Database
 
-# Spatial Join
+Spatial Join
 
 # Join urban/rural information with regions using st_is_within
 
@@ -122,9 +195,10 @@ region.urban.join <- st_join(urban, nz.reg.shp, join=st_within)
 
 ```
 
-## Join Zombie Attack locations with joined frame above:
+## Join Zombie Attack locations with regions, and urban/rural:
 
 ```{r}
+# make sure all are in the same CRS
 st_crs(zombie.shp) == st_crs(region.urban.join)
 
 st_crs(zombie.shp)
@@ -135,9 +209,15 @@ zombie.shp.proj <- st_transform(zombie.shp, crs = st_crs(region.urban.join))
 
 st_crs(zombie.shp.proj) == st_crs(region.urban.join)
 
+
+# or, first can join attacks with urban districts then further summarize that to regions
+
+urban.zombie.join <- st_join(zombie.shp.proj, urban, join = st_within)
+# combine zombie attacks with region data
 region.zombie.join <- st_join(nz.reg.shp, zombie.shp.proj, join = st_contains)
 ```
 
+C. Constructing Database
 
 # Summarize
 
@@ -154,8 +234,13 @@ print(attacks.per.region)
 # get population density for each region? And then attacks/pop/sqkm?
 ```
 
-```{r}
-# collapse 'urban' to just urban and rural then find the number of attacks that occur in urban vs rural areas
+```{r pharmperregion}
+
+# Find the number of pharmacies per region
+
+pharm.per.region <- st_join(nz.reg.shp, nz.pharm.proj, join = st_contains)
+
+head(pharm.per.region)
 ```
 
 

@@ -32,7 +32,7 @@ library(tidyverse)
 # A. Regions
 
 ## 1. New Zealand Region Data
- Data source: https://catalogue.data.govt.nz/dataset
+ Data source: https://datafinder.stats.govt.nz/layer/98765-regional-council-2019-clipped-generalised/
 
 The regions of New Zealand are my 'regions' I will use to organize higher order variables.
 
@@ -42,8 +42,8 @@ The regions of New Zealand are my 'regions' I will use to organize higher order 
 # at https://datafinder.stats.govt.nz/data/ (requires registration)
 # Save the result as:
 
-unzip("statsnzregional-council-2018-clipped-generalised-SHP.zip")
-nz.full.shp <- st_read("regional-council-2018-clipped-generalised.shp")
+unzip("statsnzregional-council-2019-clipped-generalised-SHP.zip")
+nz.full.shp <- st_read("regional-council-2019-clipped-generalised.shp")
 
 plot(st_geometry(nz.full.shp))
 # print(object.size(nz_full), units = "Kb") # 14407.2 Kb
@@ -52,21 +52,12 @@ plot(st_geometry(nz.full.shp))
 
 
 names(nz.full.shp)
-nz.full.shp$REGC2018_1
-nz = filter(nz.full.shp, REGC2018_1 != "Area Outside Region") %>%
-        select(Region = REGC2018_1)
+nz.full.shp$REGC2019_1
+nz.reg.shp = filter(nz.full.shp, REGC2019_1 != "Area Outside Region") %>%
+        select(Region = REGC2019_1, AreaSQKM = AREA_SQ_KM, geometry)
 
-st_is_valid(nz)
-st_crs(nz)
-
-nz.reg.coun <- read.csv("regional_council_2018_csv.csv")
-nz.reg.coun <- filter(nz.reg.coun, REGC2018_V1_00_NAME != "Area Outside Region") %>%
-  select(Region = REGC2018_V1_00_NAME, Area_SQKM = LAND_AREA_SQ_KM)
-
-# join nz.reg.coun with spatial data nz
-
-nz.shp <- inner_join(nz, nz.reg.coun, by = "Region")
-
+st_is_valid(nz.reg.shp)
+st_crs(nz.reg.shp)
 
 ```
 # B. Tabular Data
@@ -94,6 +85,8 @@ census2 <- census2 %>%
 ```
 
 # Urban vs Rural shapefile
+
+https://datafinder.stats.govt.nz/layer/98743-urban-rural-2019-clipped-generalised/
 
 ```{r urbrur}
 unzip("statsnzurban-rural-2019-clipped-generalised-SHP.zip")
@@ -147,7 +140,7 @@ st_crs(region.urban.join)
 zombie.shp.proj <- st_transform(zombie.shp, crs = st_crs(region.urban.join))
 st_crs(zombie.shp.proj) == st_crs(region.urban.join)
 
-
+reg.urb.zom.join <- st_join(zombie.shp.proj, region.urban.join, join = st_within)
 region.zombie.join <- st_join(zombie.shp.proj, nz.shp, join = st_within)
 ```
 

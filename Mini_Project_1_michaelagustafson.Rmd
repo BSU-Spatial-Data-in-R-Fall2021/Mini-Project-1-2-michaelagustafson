@@ -112,6 +112,8 @@ names(nz.census)
 nz.census <- filter(nz.census, X...Census.year == "2018") %>%
   select(Year = X...Census.year, Region, Population = Value)
 
+nz.census$Region = paste(nz.census$Region, "Region", sep = " ")
+nz.census[8, 2] = "Manawatu-Wanganui Region"
 ```
 
 
@@ -274,9 +276,9 @@ tidy.summary.df <- tidy.summary.df %>%
   rowwise() %>%
   mutate(Urban_Attack_sum = sum(across(starts_with("Urban_attacks")), na.rm = T))
 
-
+# taking out Other Attack sum becuase there were none (they were in an unidentified region)
 tidy.summary.df <- tidy.summary.df %>%
-  select(Region, Other_sqkm, Rural_sqkm, Urban_sqkm, Other_Attack_sum, Rural_Attack_sum, Urban_Attack_sum)
+  select(Region, Other_sqkm, Rural_sqkm, Urban_sqkm, Rural_Attack_sum, Urban_Attack_sum)
 ### NEED TO FIX REGIONAL SQKM
 ```
 
@@ -293,9 +295,24 @@ pharm.per.region.ng <- pharm.per.region.ng %>%
 pharm.per.region.count <- pharm.per.region.ng %>% 
   group_by(Region) %>%
   tally()
+
+pharm.per.region.count <- rename(pharm.per.region.count, pharms_per_region = n)
+# combine pharmacies per region with summary.df
+
+tidy.summary.df <- left_join(tidy.summary.df, pharm.per.region.count)
+
+```
+# Add census data to tidy summary df
+```{r addcensus}
+
+tidy.summary.df <- left_join(tidy.summary.df, nz.census)
+
 ```
 
+```{r totalarea}
 
+tidy.summary.df <- left_join(tidy.summary.df, nz.reg.shp)
+```
 
 
 

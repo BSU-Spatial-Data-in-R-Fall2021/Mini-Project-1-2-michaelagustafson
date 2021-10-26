@@ -45,7 +45,9 @@ library(dplyr)
 library(terra)
 library(sf)
 library(tidyverse)
-library(ggmap)
+library(nngeo)
+library(data.table)
+# library(ggmap)
 ```
 
 # A. Dependent Variable with Point Geometry: Zombie Attacks
@@ -71,7 +73,7 @@ plot(zombie.shp)
 
 The regions of New Zealand are my 'regions' I will use to organize higher order variables.
 
-```{r gitnzcencsu}
+```{r nzregions}
 # Find "Regional Council 2018 Clipped (generalised)"
 # select the GeoPackage option in the "Vectors/tables" dropdown
 # at https://datafinder.stats.govt.nz/data/ (requires registration)
@@ -128,17 +130,22 @@ plot(st_geometry(urbrur))
 urban <- urbrur %>%
   select(Name = UR2019_V_1, Urban = IUR2019__1, AreaSQKM = AREA_SQ_KM, geometry)
 
+unique(urban$Urban)
+# neet to change columsn to say just urban or rural
 
+urban$Urban[grep("urban", urban$Urban)] <- "Urban"
+urban$Urban[grep("Rural", urban$Urban)] <- "Rural"
+urban$Urban[grep("water", urban$Urban)] <- "Other"
+urban$Urban[grep("Oceanic", urban$Urban)] <- "Other"
 ```
 
 # 2. Pharmacy Location Data
 Data source: https://fyi.org.nz/request/10183-total-number-of-licenced-pharmacies-in-nz-2019
 
 Does this still count as tabular data even though I turned it into spatial data??
-```{r}
+```{r pharm}
 
 #?register_google
-#register_google(key = "AIzaSyAqigVAND9UsFfCnlKTIoVxmkhJOjV3Po0", write = TRUE)
 
 #nz.pharm <- read.csv("Pharmacy Database.csv")
 
@@ -183,16 +190,96 @@ plot(st_geometry(nz.pharm.proj), add = TRUE)
 
 Spatial Join
 
-# Join urban/rural information with regions using st_is_within
+Questions to Answer:
+1. What is the percentage of urban and rural areas within each region?
+2. What is the number of attacks in each urban type within each region?
+3. What is the population density of each region (people/sqkm)?
+4. What is the number of attacks per population in each region? (attacks/people)
 
 ```{r}
 
+# make sure CRS are the same
+st_crs(zombie.shp) == st_crs(urban)
+zombie.shp.proj <- st_transform(zombie.shp, crs = st_crs(urban))
+st_crs(zombie.shp.proj) == st_crs(urban)
 st_crs(urban) == st_crs(nz.reg.shp)
 
-region.urban.join <- st_join(urban, nz.reg.shp, join=st_within)
+# ended up using a nearest neighbor approach because I kept getting points 800 something rows when I started with 668 so something was getting duplicated:
+zombie.urban.join <- st_join(urban, zombie.shp.proj, join = st_nn, k = 1, maxdist = 50)
 
-# yayayya ended up with same number of observations as in the 'urban' dataset. But we have some urban districts that didn't match up with a region. Not as many as with the datasets used prior, but still unsure how to fix this.
 
+zombie.urban.region.join <- st_join(zombie.urban.join, nz.reg.shp, join = st_within)
+
+
+str(zombie.urban.region.join)
+
+zombie.urban.region.ng <- st_drop_geometry(zombie.urban.region.join)
+
+zombie.urban.region.df <- zombie.urban.region.ng %>%
+  select(Urban, AreaSQKM.x, Attacks, Region)
+
+
+
+zombie.urban.region.df <- as.data.frame(zombie.urban.region.df)
+
+zombie.urban.region.df$Region <- as.factor(zombie.urban.region.df$Region)
+
+zombie.urban.region.df$Attacks <- replace_na(zombie.urban.region.df$Attacks, 0)
+zombie.urban.region.df$Attacks <- as.numeric(zombie.urban.region.df$Attacks)
+
+
+summary.df <- zombie.urban.region.df %>% 
+  group_by(Region, Urban) %>% 
+  summarise(., sum(Attacks), sqkm_dis_total = sum(AreaSQKM.x))
+
+summary.df <- rename(summary.df, Attacks = "sum(Attacks)")
+
+summary.df$urban_attacks <- paste(summary.df$Urban, summary.df$Attacks, sep = ";")
+
+summary.df.wide <- spread(summary.df, Urban, sqkm_dis_total, "0")
+summary.df.wide <- spread(summary.df.wide, urban_attacks, Attacks)
+
+str(summary.df.wide)
+
+summary.df.wide$Other <- as.numeric(summary.df.wide$Other)
+summary.df.wide$Rural <- as.numeric(summary.df.wide$Rural)
+summary.df.wide$Urban <- as.numeric(summary.df.wide$Urban)
+
+summary.df.wide <- summary.df.wide[!is.na(summary.df.wide$Region),]
+
+summary.df.wide[is.na(summary.df.wide)] <- 0
+
+summary.df.wide <- summary.df.wide %>%
+  group_by(Region) %>%
+  summarise_if(., is.numeric, sum)
+
+
+summary.df.wide <- rename(summary.df.wide, Other_sqkm = "Other")
+summary.df.wide <- rename(summary.df.wide, Rural_sqkm = "Rural")
+summary.df.wide <- rename(summary.df.wide, Urban_sqkm = "Urban")
+
+
+colnames(summary.df.wide)[grepl('Other;',colnames(summary.df.wide))] <- 'Other_attacks'
+colnames(summary.df.wide)[grepl('Rural;',colnames(summary.df.wide))] <- 'Rural_attacks'
+colnames(summary.df.wide)[grepl('Urban;',colnames(summary.df.wide))] <- 'Urban_attacks'
+
+names(summary.df.wide) <- make.unique(names(summary.df.wide))
+tidy.summary.df <- summary.df.wide %>%
+  rowwise() %>%
+  mutate(Rural_Attack_sum = sum(across(starts_with("Rural_attacks")), na.rm = T))
+
+tidy.summary.df <- tidy.summary.df %>%
+  rowwise() %>%
+  mutate(Other_Attack_sum = sum(across(starts_with("Other_attacks")), na.rm = T))
+
+tidy.summary.df <- tidy.summary.df %>%
+  rowwise() %>%
+  mutate(Urban_Attack_sum = sum(across(starts_with("Urban_attacks")), na.rm = T))
+
+
+tidy.summary.df <- tidy.summary.df %>%
+  select(Region, Other_sqkm, Rural_sqkm, Urban_sqkm, Other_Attack_sum, Rural_Attack_sum, Urban_Attack_sum)
+### NEED TO FIX REGIONAL SQKM
 ```
 
 ## Join Zombie Attack locations with regions, and urban/rural:
@@ -217,11 +304,7 @@ urban.zombie.join <- st_join(zombie.shp.proj, urban, join = st_within)
 region.zombie.join <- st_join(nz.reg.shp, zombie.shp.proj, join = st_contains)
 ```
 
-C. Constructing Database
 
-# Summarize
-
-## Summarize the number of attacks per region
 
 ```{r}
 attacks.per.region <- region.zombie.join %>% 

@@ -97,8 +97,7 @@ st_is_valid(nz.reg.shp)
 st_crs(nz.reg.shp)
 
 ```
-# C. Tabular Data
-## 1. Census Data
+# C. 1. Census Data
 
 Data source: https://www.stats.govt.nz/topics/census
 
@@ -117,8 +116,7 @@ nz.census <- filter(nz.census, X...Census.year == "2018") %>%
 
 
 
-# D. Spatial Data
-## 1. Urban vs Rural shapefile
+# 2. Urban vs Rural shapefile
 
 Data source: https://datafinder.stats.govt.nz/layer/98743-urban-rural-2019-clipped-generalised/
 
@@ -139,7 +137,7 @@ urban$Urban[grep("water", urban$Urban)] <- "Other"
 urban$Urban[grep("Oceanic", urban$Urban)] <- "Other"
 ```
 
-# 2. Pharmacy Location Data
+# 3. Pharmacy Location Data
 Data source: https://fyi.org.nz/request/10183-total-number-of-licenced-pharmacies-in-nz-2019
 
 Does this still count as tabular data even though I turned it into spatial data??
@@ -186,7 +184,7 @@ plot(st_geometry(nz.pharm.proj), add = TRUE)
 #looks alright
 ```
 
-# E. Creating Database
+# D. Creating Database
 
 Spatial Join
 
@@ -282,48 +280,19 @@ tidy.summary.df <- tidy.summary.df %>%
 ### NEED TO FIX REGIONAL SQKM
 ```
 
-## Join Zombie Attack locations with regions, and urban/rural:
-
-```{r}
-# make sure all are in the same CRS
-st_crs(zombie.shp) == st_crs(region.urban.join)
-
-st_crs(zombie.shp)
-st_crs(region.urban.join)
-
-?st_transform
-zombie.shp.proj <- st_transform(zombie.shp, crs = st_crs(region.urban.join))
-
-st_crs(zombie.shp.proj) == st_crs(region.urban.join)
-
-
-# or, first can join attacks with urban districts then further summarize that to regions
-
-urban.zombie.join <- st_join(zombie.shp.proj, urban, join = st_within)
-# combine zombie attacks with region data
-region.zombie.join <- st_join(nz.reg.shp, zombie.shp.proj, join = st_contains)
-```
-
-
-
-```{r}
-attacks.per.region <- region.zombie.join %>% 
-  group_by(Region) %>% 
-  summarize(., Total_Attacks = sum(Attacks))
-
-print(attacks.per.region)
-
-
-# get population density for each region? And then attacks/pop/sqkm?
-```
-
 ```{r pharmperregion}
 
 # Find the number of pharmacies per region
 
 pharm.per.region <- st_join(nz.reg.shp, nz.pharm.proj, join = st_contains)
+pharm.per.region.ng <- st_drop_geometry(pharm.per.region)
+pharm.per.region.ng <- pharm.per.region.ng %>%
+  select(Region, Pharmacy_Nm)
 
-head(pharm.per.region)
+# Count the number of pharmacies in each region
+pharm.per.region.count <- pharm.per.region.ng %>% 
+  group_by(Region) %>%
+  tally()
 ```
 
 

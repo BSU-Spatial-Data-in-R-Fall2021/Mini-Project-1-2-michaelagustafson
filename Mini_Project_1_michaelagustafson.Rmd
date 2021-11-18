@@ -1,5 +1,5 @@
 ---
-title: "Mini Project 1"
+title: "Mini Project 1 & 2"
 author: "Michaela Gustafson"
 date: "10/16/2021"
 output: html_document
@@ -47,6 +47,8 @@ library(sf)
 library(tidyverse)
 library(nngeo)
 library(data.table)
+library(tmap)
+library(viridis)
 # library(ggmap)
 ```
 
@@ -183,6 +185,9 @@ st_crs(nz.reg.shp) == st_crs(nz.pharm.proj)
 
 plot(st_geometry(nz.reg.shp))
 plot(st_geometry(nz.pharm.proj), add = TRUE)
+
+
+nz.pharm.proj$type <- "Pharmacy"
 #looks alright
 ```
 
@@ -304,20 +309,55 @@ tidy.summary.df <- left_join(tidy.summary.df, pharm.per.region.count)
 ```
 # Add census data to tidy summary df
 ```{r addcensus}
-
+# add total population to final df
 tidy.summary.df <- left_join(tidy.summary.df, nz.census)
 
-```
-
-```{r totalarea}
-
+# add total area (sqkm) to final df
 tidy.summary.df <- left_join(tidy.summary.df, nz.reg.shp)
+
+# calculate attacks/rural area and attacks per urban area per region
+
+tidy.summary.df <- tidy.summary.df %>%
+  mutate(attacks_per_rural = Rural_Attack_sum/Rural_sqkm,
+         attacks_per_urban = Urban_Attack_sum/Urban_sqkm,
+         pop_density = Population/AreaSQKM,
+         perc_rural = Rural_sqkm/AreaSQKM,
+         perc_urb = Urban_sqkm/AreaSQKM,
+         total_attacks = Rural_Attack_sum + Urban_Attack_sum)
+
+
+
+
+
+
+
 ```
 
 
+```{r savewkspce}
+save.image(here("workspaces/MiniProj_Workspace.RData"))
+```
 
 
+# Static Map 1: Location of attacks and population density
+```{r}
+tidy.summary.df <- st_as_sf(tidy.summary.df)
+?tm_polygons
 
+tm_shape(tidy.summary.df) +
+  tm_polygons(col = "Region", palette = "viridis") +
+  tm_legend(outside = TRUE) + 
+  tm_bubbles(size = "Population", col = "pop_density", border.col = "black")
+ 
+
+tm_shape(tidy.summary.df) + 
+  tm_polygons(col = "total_attacks", palette = "magma") +
+tm_shape(nz.pharm.proj) +
+  tm_dots("type", col = "green", size = 0.1)
+
+
+```
+Hmmm... I think these colors are too similar... Also, plotting the map this way already has me thinking of other ways I would like to have my data setup in the dataframe to get across the message I'm trying to put out.
 
 
 

@@ -64,7 +64,7 @@ zom <- read.csv("zombies.csv")
 head(zom); dim(zom)
 
 zombie.shp <- read_sf(here("New_Zealand_Zombie_Attack_Data.shp"))
-plot(zombie.shp)
+plot(zombie.shp) #remember to use st_geometry to avoid plotting every column in the dataframe
 
 ```
 
@@ -118,7 +118,7 @@ nz.census$Region = paste(nz.census$Region, "Region", sep = " ")
 nz.census[8, 2] = "Manawatu-Wanganui Region"
 ```
 
-
+_You'll want to leave yourself a few more "breadcrumbs", I think. Anytime you are directly modifying the data (as you do above), it's good to leave a note to remind you why you did_
 
 # 2. Urban vs Rural shapefile
 
@@ -149,33 +149,33 @@ Does this still count as tabular data even though I turned it into spatial data?
 
 #?register_google
 
-#nz.pharm <- read.csv("Pharmacy Database.csv")
+nz.pharm <- read.csv("Pharmacy Database.csv")
 
-#nz.pharm <- nz.pharm %>%
- # select(Pharmacy_Nm = PREMISES_NAME, Street = STREET_ADDRESS, Suburb = #STREET_ADDRESS_SUBURB_RD, City = STREET_ADDRESS_TOWN_CITY, zip = STREET_ADDRESS_POST_CODE)
+nz.pharm <- nz.pharm %>%
+  select(Pharmacy_Nm = PREMISES_NAME, Street = STREET_ADDRESS, Suburb = STREET_ADDRESS_SUBURB_RD, City = STREET_ADDRESS_TOWN_CITY, zip = STREET_ADDRESS_POST_CODE)
 
-#head(nz.pharm)
+head(nz.pharm)
 
 # create address column with full address (minus postal code)
-#nz.pharm$address <- paste(nz.pharm$Street, nz.pharm$Suburb, nz.pharm$City, sep = ",")
+nz.pharm$address <- paste(nz.pharm$Street, nz.pharm$Suburb, nz.pharm$City, sep = ",")
 # remove double "," for those that didn't have a suburb listed
-#nz.pharm$address <- gsub(",,", ",", nz.pharm$address)
+nz.pharm$address <- gsub(",,", ",", nz.pharm$address)
 
 # initialize dataframe
-#geocoded <- data.frame(stringsAsFactors = FALSE)
+geocoded <- data.frame(stringsAsFactors = FALSE)
 
-#for(i in 1:nrow(nz.pharm)) {
-  # Print("Working...")
- # result <- geocode(nz.pharm$address[i], output = "latlona", source = "google")
- # nz.pharm$lon[i] <- as.numeric(result[1])
-  #nz.pharm$lat[i] <- as.numeric(result[2])
-#}
+for(i in 1:nrow(nz.pharm)) {
+   print("Working...")
+  result <- geocode(nz.pharm$address[i], output = "latlona", source = "google")
+  nz.pharm$lon[i] <- as.numeric(result[1])
+  nz.pharm$lat[i] <- as.numeric(result[2])
+} #I can't run this to replicate your nz pharm
 
 #write.csv(nz.pharm, here("nz.pharm.csv"))
 
 # read in pharmacy csv created above that now has location data:
 
-nz.pharm <- read.csv(here("nz.pharm.csv"))
+nz.pharm <- read.csv(here("nz.pharm.csv"))# this doesn't work and your document doesn't knit; presumably because you didn't save or upload the nz.pharm object
 
 nz.pharm <- na.omit(nz.pharm)
 nz.pharm.sf <- st_as_sf(nz.pharm, coords = c("lon", "lat"), crs = 4326)
@@ -333,6 +333,7 @@ tidy.summary.df <- tidy.summary.df %>%
 
 ```
 
+_you didn't have any raster extractions here and the analysis is not reproducible because a) you didn't save the nz_pharm object, b) you didn't provide all of the necessary info to recreate it. I would have liked to see a little more effort and annotation. If I knew more about what you were trying to do, I might actually be able to fix the parts of this that wont run._
 
 ```{r savewkspce}
 save.image(here("workspaces/MiniProj_Workspace.RData"))

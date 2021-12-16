@@ -49,6 +49,7 @@ library(nngeo)
 library(data.table)
 library(tmap)
 library(viridis)
+library(rgdal)
 # library(ggmap)
 ```
 
@@ -333,9 +334,109 @@ tidy.summary.df <- tidy.summary.df %>%
 
 ```
 
+# Add elevation
+
+```{r elev}
+rastlist1 <- list.files(path = "/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/", pattern = '.tif', full.names=TRUE)
+rastlist1
+
+rn1 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/aklnd_25r.tif")
+rn2 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/ecape_25r.tif")
+rn3 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/hksbay_25r.tif")
+rn4 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/nthcape_25r.tif")
+rn5 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/taranaki_25r.tif")
+rn6 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/waikato_25r.tif")
+rn7 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/well_25r.tif")
+rn8 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem-north/whngrei_25r.tif")
+
+
+rastlist2 <- list.files(path = "/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/", pattern = '.tif', all.files=TRUE, full.names=FALSE)
+rastlist2
+
+rs1 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/chch25r.tif")
+rs2 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/dunedin_25r.tif")
+rs3 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/greymth_25r.tif")
+rs4 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/invcgll_25r.tif")
+rs5 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/kaik_25r.tif")
+rs6 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/mtcook_25r.tif")
+rs7 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/nelson_25r.tif")
+rs8 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/teanau_25r.tif")
+rs9 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/waitaki_25r.tif")
+
+all.rast <- merge(rn1, rn2, rn3, rn4, rn5, rn6, rn7, rn8, rs1, rs2, rs3, rs4, rs5, rs6, rs7, rs8, rs9)
+
+### Create buffers around attack points and calculate mean elevation
+zombie.elev.proj <- st_transform(zombie.shp, crs = crs(all.rast))
+
+plot(all.rast)
+plot(zombie.elev.proj, add = TRUE)
+
+# Technically should be calculating the mean elevation or range or something from a buffer surrounding the point, but for the sake of time (because I already tried it and I'd have to mess around with changing extents and a bunch of other stuff) and to actually practice what I'm supposed to be practicing - just going to the pull the elevation from the exact point of attack:
+
+zomb.elev.proj.vect <- vect(zombie.elev.proj)
+elev.at.attack <- extract(all.rast, zomb.elev.proj.vect, na.rm = TRUE)
+
+elev.at.attack$ID <- zombie.attacks.df$OBJECTID
+elev.at.attack <- rename(elev.at.attack, OBJECTID = ID)
+```
+
+
+# Trying to create new df
+```{r}
+
+?st_join
+# add urban or rural  
+zombie.attacks.df <- st_join(zombie.shp.proj, urban, join = st_within)
+colnames(zombie.attacks.df)
+zombie.attacks.df <- zombie.attacks.df[,c(1, 4, 6:8, 10)]
+
+# add elevation
+zombie.attacks.df <- left_join(zombie.attacks.df, elev.at.attack)
+zombie.attacks.df <- rename(zombie.attacks.df, elev = aklnd_25r)
+
+# add region
+zombie.attacks.df <- st_join(zombie.attacks.df, nz.reg.shp, join = st_within)
+
+# add number of pharmacies per region
+zombie.attacks.df <- left_join(zombie.attacks.df, pharm.per.region.count)
+
+
+# add census data
+zombie.attacks.df <- left_join(zombie.attacks.df, nz.census)
+
+# mutate and calculate population density per region
+zombie.attacks.df <- zombie.attacks.df %>%
+  mutate(pop_density = Population/AreaSQKM)
+
+```
+
+
+
+
+
+
 
 ```{r savewkspce}
 save.image(here("workspaces/MiniProj_Workspace.RData"))
+```
+
+
+
+## Mini Project 2
+
+```{r lib2}
+library(tidyverse)
+library(pander)
+library(sf)
+library(units)
+library(ggmap)
+library(cartogram)
+library(patchwork)
+library(tmap)
+library(viridis)
+library(tigris)
+library(ggspatial)
+library(plotly)
 ```
 
 
@@ -360,6 +461,13 @@ tm_shape(nz.pharm.proj) +
 Hmmm... I think these colors are too similar... Also, plotting the map this way already has me thinking of other ways I would like to have my data setup in the dataframe to get across the message I'm trying to put out.
 
 
+```{r}
+st_bbox(nz.full.shp)
+bg <- get_stamenmap(as.vector(st_bbox(nz.full.shp, 4326)), zoom = 18)
+
+ggmap(bg) +
+  geom_sf(data = nz.pharm.proj)
+```
 
 
 

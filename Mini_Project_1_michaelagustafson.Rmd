@@ -433,11 +433,6 @@ tm_shape(nz.reg.shp.join) +
   tm_bubbles(size = "Population", col = "pop_density", border.col = "black")
  
 
-tm_shape(tidy.summary.df) + 
-  tm_polygons(col = "total_attacks", palette = "magma") +
-tm_shape(nz.pharm.proj) +
-  tm_dots("type", col = "green", size = 0.1)
-
 
 ```
 
@@ -488,14 +483,14 @@ nz.shp.reproj <- st_transform(nz.reg.shp.join, crs = st_crs(zombie.shp))
 
 library(htmltools)
 labs <- as.list(zombie.shp$Attacks)
-
+labs2 <- as.list(nz.shp.reproj$pop_density)
 ## Color setup
 colpal <- colorNumeric(palette = "magma", domain=nz.shp.reproj[['pop_density']], n=10)
 colorData <- nz.shp.reproj[["pop_density"]]
 
 map <- map %>%
   addTiles() %>%
-    addPolygons(data = nz.shp.reproj, color = ~colpal(colorData))
+    addPolygons(data = nz.shp.reproj, label = lapply(labs2, HTML), color = ~colpal(colorData))
 
 map <- map %>%
   addCircleMarkers(data = zombie.shp,
@@ -513,7 +508,7 @@ map
 
 
 ```
-
+Honestly, just pretty stoked I got an interactive map to work. When you hover over points and shows how many attacks occured at that point and when you hover over regions it shows the population density (people/sqkm)
 
 
 ![These Are My Tears](/opt/data/MP/Gustafson_Michaela_MP/thesearemytears.png)

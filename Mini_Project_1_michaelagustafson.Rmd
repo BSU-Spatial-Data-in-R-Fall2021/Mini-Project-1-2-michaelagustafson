@@ -148,35 +148,9 @@ Data source: https://fyi.org.nz/request/10183-total-number-of-licenced-pharmacie
 Does this still count as tabular data even though I turned it into spatial data??
 ```{r pharm}
 
-#?register_google
+# read in pharmacy csv with location data
 
-nz.pharm <- read.csv("Pharmacy Database.csv")
-
-nz.pharm <- nz.pharm %>%
-  select(Pharmacy_Nm = PREMISES_NAME, Street = STREET_ADDRESS, Suburb = STREET_ADDRESS_SUBURB_RD, City = STREET_ADDRESS_TOWN_CITY, zip = STREET_ADDRESS_POST_CODE)
-
-head(nz.pharm)
-
-# create address column with full address (minus postal code)
-nz.pharm$address <- paste(nz.pharm$Street, nz.pharm$Suburb, nz.pharm$City, sep = ",")
-# remove double "," for those that didn't have a suburb listed
-nz.pharm$address <- gsub(",,", ",", nz.pharm$address)
-
-# initialize dataframe
-geocoded <- data.frame(stringsAsFactors = FALSE)
-
-for(i in 1:nrow(nz.pharm)) {
-   print("Working...")
-  result <- geocode(nz.pharm$address[i], output = "latlona", source = "google")
-  nz.pharm$lon[i] <- as.numeric(result[1])
-  nz.pharm$lat[i] <- as.numeric(result[2])
-} #I can't run this to replicate your nz pharm
-
-#write.csv(nz.pharm, here("nz.pharm.csv"))
-
-# read in pharmacy csv created above that now has location data:
-
-nz.pharm <- read.csv(here("nz.pharm.csv"))# this doesn't work and your document doesn't knit; presumably because you didn't save or upload the nz.pharm object
+nz.pharm <- read.csv(here("nz.pharm.csv"))
 
 nz.pharm <- na.omit(nz.pharm)
 nz.pharm.sf <- st_as_sf(nz.pharm, coords = c("lon", "lat"), crs = 4326)
@@ -211,80 +185,80 @@ st_crs(zombie.shp.proj) == st_crs(urban)
 st_crs(urban) == st_crs(nz.reg.shp)
 
 # ended up using a nearest neighbor approach because I kept getting points 800 something rows when I started with 668 so something was getting duplicated:
-zombie.urban.join <- st_join(urban, zombie.shp.proj, join = st_nn, k = 1, maxdist = 50)
+#zombie.urban.join <- st_join(urban, zombie.shp.proj, join = st_nn, k = 1, maxdist = 50)
 
 
-zombie.urban.region.join <- st_join(zombie.urban.join, nz.reg.shp, join = st_within)
+#zombie.urban.region.join <- st_join(zombie.urban.join, nz.reg.shp, join = st_within)
 
 
-str(zombie.urban.region.join)
+#str(zombie.urban.region.join)
 
-zombie.urban.region.ng <- st_drop_geometry(zombie.urban.region.join)
+#zombie.urban.region.ng <- st_drop_geometry(zombie.urban.region.join)
 
-zombie.urban.region.df <- zombie.urban.region.ng %>%
-  select(Urban, AreaSQKM.x, Attacks, Region)
-
-
-
-zombie.urban.region.df <- as.data.frame(zombie.urban.region.df)
-
-zombie.urban.region.df$Region <- as.factor(zombie.urban.region.df$Region)
-
-zombie.urban.region.df$Attacks <- replace_na(zombie.urban.region.df$Attacks, 0)
-zombie.urban.region.df$Attacks <- as.numeric(zombie.urban.region.df$Attacks)
+#zombie.urban.region.df <- zombie.urban.region.ng %>%
+ # select(Urban, AreaSQKM.x, Attacks, Region)
 
 
-summary.df <- zombie.urban.region.df %>% 
-  group_by(Region, Urban) %>% 
-  summarise(., sum(Attacks), sqkm_dis_total = sum(AreaSQKM.x))
 
-summary.df <- rename(summary.df, Attacks = "sum(Attacks)")
+#zombie.urban.region.df <- as.data.frame(zombie.urban.region.df)
 
-summary.df$urban_attacks <- paste(summary.df$Urban, summary.df$Attacks, sep = ";")
+#zombie.urban.region.df$Region <- as.factor(zombie.urban.region.df$Region)
 
-summary.df.wide <- spread(summary.df, Urban, sqkm_dis_total, "0")
-summary.df.wide <- spread(summary.df.wide, urban_attacks, Attacks)
-
-str(summary.df.wide)
-
-summary.df.wide$Other <- as.numeric(summary.df.wide$Other)
-summary.df.wide$Rural <- as.numeric(summary.df.wide$Rural)
-summary.df.wide$Urban <- as.numeric(summary.df.wide$Urban)
-
-summary.df.wide <- summary.df.wide[!is.na(summary.df.wide$Region),]
-
-summary.df.wide[is.na(summary.df.wide)] <- 0
-
-summary.df.wide <- summary.df.wide %>%
-  group_by(Region) %>%
-  summarise_if(., is.numeric, sum)
+#zombie.urban.region.df$Attacks <- replace_na(zombie.urban.region.df$Attacks, 0)
+#zombie.urban.region.df$Attacks <- as.numeric(zombie.urban.region.df$Attacks)
 
 
-summary.df.wide <- rename(summary.df.wide, Other_sqkm = "Other")
-summary.df.wide <- rename(summary.df.wide, Rural_sqkm = "Rural")
-summary.df.wide <- rename(summary.df.wide, Urban_sqkm = "Urban")
+#summary.df <- zombie.urban.region.df %>% 
+  #group_by(Region, Urban) %>% 
+  #summarise(., sum(Attacks), sqkm_dis_total = sum(AreaSQKM.x))
+
+#summary.df <- rename(summary.df, Attacks = "sum(Attacks)")
+
+#summary.df$urban_attacks <- paste(summary.df$Urban, summary.df$Attacks, sep = ";")
+
+#summary.df.wide <- spread(summary.df, Urban, sqkm_dis_total, "0")
+#summary.df.wide <- spread(summary.df.wide, urban_attacks, Attacks)
+
+#str(summary.df.wide)
+
+#summary.df.wide$Other <- as.numeric(summary.df.wide$Other)
+#summary.df.wide$Rural <- as.numeric(summary.df.wide$Rural)
+#summary.df.wide$Urban <- as.numeric(summary.df.wide$Urban)
+
+#summary.df.wide <- summary.df.wide[!is.na(summary.df.wide$Region),]
+
+#summary.df.wide[is.na(summary.df.wide)] <- 0
+
+#summary.df.wide <- summary.df.wide %>%
+ # group_by(Region) %>%
+  #summarise_if(., is.numeric, sum)
 
 
-colnames(summary.df.wide)[grepl('Other;',colnames(summary.df.wide))] <- 'Other_attacks'
-colnames(summary.df.wide)[grepl('Rural;',colnames(summary.df.wide))] <- 'Rural_attacks'
-colnames(summary.df.wide)[grepl('Urban;',colnames(summary.df.wide))] <- 'Urban_attacks'
+#summary.df.wide <- rename(summary.df.wide, Other_sqkm = "Other")
+#summary.df.wide <- rename(summary.df.wide, Rural_sqkm = "Rural")
+#summary.df.wide <- rename(summary.df.wide, Urban_sqkm = "Urban")
+#
 
-names(summary.df.wide) <- make.unique(names(summary.df.wide))
-tidy.summary.df <- summary.df.wide %>%
-  rowwise() %>%
-  mutate(Rural_Attack_sum = sum(across(starts_with("Rural_attacks")), na.rm = T))
+#colnames(summary.df.wide)[grepl('Other;',colnames(summary.df.wide))] <- 'Other_attacks'
+#colnames(summary.df.wide)[grepl('Rural;',colnames(summary.df.wide))] <- 'Rural_attacks'
+#colnames(summary.df.wide)[grepl('Urban;',colnames(summary.df.wide))] <- 'Urban_attacks'
 
-tidy.summary.df <- tidy.summary.df %>%
-  rowwise() %>%
-  mutate(Other_Attack_sum = sum(across(starts_with("Other_attacks")), na.rm = T))
+#names(summary.df.wide) <- make.unique(names(summary.df.wide))
+#tidy.summary.df <- summary.df.wide %>%
+  #rowwise() %>%
+  #mutate(Rural_Attack_sum = sum(across(starts_with("Rural_attacks")), na.rm = T))
 
-tidy.summary.df <- tidy.summary.df %>%
-  rowwise() %>%
-  mutate(Urban_Attack_sum = sum(across(starts_with("Urban_attacks")), na.rm = T))
+#tidy.summary.df <- tidy.summary.df %>%
+  #rowwise() %>%
+ # mutate(Other_Attack_sum = sum(across(starts_with("Other_attacks")), na.rm = T))
+
+#tidy.summary.df <- tidy.summary.df %>%
+  #rowwise() %>%
+  #mutate(Urban_Attack_sum = sum(across(starts_with("Urban_attacks")), na.rm = T))
 
 # taking out Other Attack sum becuase there were none (they were in an unidentified region)
-tidy.summary.df <- tidy.summary.df %>%
-  select(Region, Other_sqkm, Rural_sqkm, Urban_sqkm, Rural_Attack_sum, Urban_Attack_sum)
+#tidy.summary.df <- tidy.summary.df %>%
+  #select(Region, Other_sqkm, Rural_sqkm, Urban_sqkm, Rural_Attack_sum, Urban_Attack_sum)
 ### NEED TO FIX REGIONAL SQKM
 ```
 
@@ -305,26 +279,27 @@ pharm.per.region.count <- pharm.per.region.ng %>%
 pharm.per.region.count <- rename(pharm.per.region.count, pharms_per_region = n)
 # combine pharmacies per region with summary.df
 
-tidy.summary.df <- left_join(tidy.summary.df, pharm.per.region.count)
+#tidy.summary.df <- left_join(tidy.summary.df, pharm.per.region.count)
 
 ```
 # Add census data to tidy summary df
+
 ```{r addcensus}
 # add total population to final df
-tidy.summary.df <- left_join(tidy.summary.df, nz.census)
+#tidy.summary.df <- left_join(tidy.summary.df, nz.census)
 
 # add total area (sqkm) to final df
-tidy.summary.df <- left_join(tidy.summary.df, nz.reg.shp)
+#tidy.summary.df <- left_join(tidy.summary.df, nz.reg.shp)
 
 # calculate attacks/rural area and attacks per urban area per region
 
-tidy.summary.df <- tidy.summary.df %>%
-  mutate(attacks_per_rural = Rural_Attack_sum/Rural_sqkm,
-         attacks_per_urban = Urban_Attack_sum/Urban_sqkm,
-         pop_density = Population/AreaSQKM,
-         perc_rural = Rural_sqkm/AreaSQKM,
-         perc_urb = Urban_sqkm/AreaSQKM,
-         total_attacks = Rural_Attack_sum + Urban_Attack_sum)
+#tidy.summary.df <- tidy.summary.df %>%
+  #mutate(attacks_per_rural = Rural_Attack_sum/Rural_sqkm,
+        # attacks_per_urban = Urban_Attack_sum/Urban_sqkm,
+        # pop_density = Population/AreaSQKM,
+        # perc_rural = Rural_sqkm/AreaSQKM,
+        # perc_urb = Urban_sqkm/AreaSQKM,
+        # total_attacks = Rural_Attack_sum + Urban_Attack_sum)
 
 
 
@@ -365,8 +340,7 @@ rs8 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/teanau_25r.tif")
 rs9 <- rast("/opt/data/MP/Gustafson_Michaela_MP/nzdem_south/waitaki_25r.tif")
 
 all.rast <- merge(rn1, rn2, rn3, rn4, rn5, rn6, rn7, rn8, rs1, rs2, rs3, rs4, rs5, rs6, rs7, rs8, rs9)
-
-### Create buffers around attack points and calculate mean elevation
+ 
 zombie.elev.proj <- st_transform(zombie.shp, crs = crs(all.rast))
 
 plot(all.rast)
@@ -377,7 +351,7 @@ plot(zombie.elev.proj, add = TRUE)
 zomb.elev.proj.vect <- vect(zombie.elev.proj)
 elev.at.attack <- extract(all.rast, zomb.elev.proj.vect, na.rm = TRUE)
 
-elev.at.attack$ID <- zombie.attacks.df$OBJECTID
+elev.at.attack$ID <- zombie.shp$OBJECTID
 elev.at.attack <- rename(elev.at.attack, OBJECTID = ID)
 ```
 
@@ -385,7 +359,6 @@ elev.at.attack <- rename(elev.at.attack, OBJECTID = ID)
 # Trying to create new df
 ```{r}
 
-?st_join
 # add urban or rural  
 zombie.attacks.df <- st_join(zombie.shp.proj, urban, join = st_within)
 colnames(zombie.attacks.df)
@@ -409,6 +382,11 @@ zombie.attacks.df <- left_join(zombie.attacks.df, nz.census)
 zombie.attacks.df <- zombie.attacks.df %>%
   mutate(pop_density = Population/AreaSQKM)
 
+#####
+
+nz.reg.shp.join <- left_join(nz.reg.shp, nz.census)
+nz.reg.shp.join <- nz.reg.shp.join %>%
+  mutate(pop_density = Population/AreaSQKM)
 ```
 
 
@@ -418,7 +396,7 @@ zombie.attacks.df <- zombie.attacks.df %>%
 
 =======
 _you didn't have any raster extractions here and the analysis is not reproducible because a) you didn't save the nz_pharm object, b) you didn't provide all of the necessary info to recreate it. I would have liked to see a little more effort and annotation. If I knew more about what you were trying to do, I might actually be able to fix the parts of this that wont run._
->>>>>>> ffc0b39210682529acf224f94b2677f3794919e4
+
 
 ```{r savewkspce}
 save.image(here("workspaces/MiniProj_Workspace.RData"))
@@ -446,10 +424,10 @@ library(plotly)
 
 # Static Map 1: Location of attacks and population density
 ```{r}
-tidy.summary.df <- st_as_sf(tidy.summary.df)
+zombie.attacks.df <- st_as_sf(zombie.attacks.df)
 ?tm_polygons
 
-tm_shape(tidy.summary.df) +
+tm_shape(nz.reg.shp.join) +
   tm_polygons(col = "Region", palette = "viridis") +
   tm_legend(outside = TRUE) + 
   tm_bubbles(size = "Population", col = "pop_density", border.col = "black")
@@ -462,20 +440,83 @@ tm_shape(nz.pharm.proj) +
 
 
 ```
-Hmmm... I think these colors are too similar... Also, plotting the map this way already has me thinking of other ways I would like to have my data setup in the dataframe to get across the message I'm trying to put out.
 
 
-```{r}
-st_bbox(nz.full.shp)
-bg <- get_stamenmap(as.vector(st_bbox(nz.full.shp, 4326)), zoom = 18)
 
-ggmap(bg) +
-  geom_sf(data = nz.pharm.proj)
+```{r interactive map}
+# required libraries
+library(leaflet, quietly = T, warn.conflicts = F)
+
+# start basemap
+map <- leaflet() %>% 
+  
+  # add ocean basemap
+  addProviderTiles(providers$Esri.OceanBasemap) %>%
+  
+  # add another layer with place names
+  addProviderTiles(providers$Hydda.RoadsAndLabels, group = 'Place names') %>%
+  
+  # add graticules from a NOAA webserver
+  addWMSTiles(
+    "https://gis.ngdc.noaa.gov/arcgis/services/graticule/MapServer/WMSServer/",
+    layers = c("1-degree grid", "5-degree grid"),
+    options = WMSTileOptions(format = "image/png8", transparent = TRUE),
+    attribution = NULL,group = 'Graticules') %>%
+  
+  # focus map in a certain area / zoom level
+  setView(lng = 174, lat = -41, zoom = 5)%>%
+  
+  # add layers control
+  addLayersControl(overlayGroups = c('Place names',
+                      'Graticules',
+                      'Points',
+                      'Lines',
+                      'Polygons'),
+                      options = layersControlOptions(collapsed = FALSE),
+                      position = 'topright') %>%
+      
+      # list groups to hide on startup
+      hideGroup(c('Place names'))
+
+# show map
+map
+
+
+### Add data
+
+nz.shp.reproj <- st_transform(nz.reg.shp.join, crs = st_crs(zombie.shp))
+
+library(htmltools)
+labs <- as.list(zombie.shp$Attacks)
+
+## Color setup
+colpal <- colorNumeric(palette = "magma", domain=nz.shp.reproj[['pop_density']], n=10)
+colorData <- nz.shp.reproj[["pop_density"]]
+
+map <- map %>%
+  addTiles() %>%
+    addPolygons(data = nz.shp.reproj, color = ~colpal(colorData))
+
+map <- map %>%
+  addCircleMarkers(data = zombie.shp,
+                   weight = 0.5,
+                   label = lapply(labs, HTML),
+                   col = 'black', 
+                   fillColor = 'darkslategrey',
+                   radius = 4, 
+                   fillOpacity = 0.9, 
+                   stroke = T)
+
+
+
+map
+
+
 ```
 
 
 
-
+![These Are My Tears](/opt/data/MP/Gustafson_Michaela_MP/thesearemytears.png)
 
 
 
